@@ -1,0 +1,8 @@
+=========================
+Comment
+=========================
+
+-- single line comment
+
+---
+(grammar (comment))

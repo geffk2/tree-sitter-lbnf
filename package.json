@@ -1,0 +1,22 @@
+{
+  "name": "tree-sitter-lbnf",
+  "version": "1.0.0",
+  "description": "A tree-sitter parser for Labelled BNF, mostly used by BNF Converter (BNFC)",
+  "main": "index.js",
+  "scripts": {
+    "test": "node_modules/.bin/tree-sitter generate && npm install && node_modules/.bin/tree-sitter test"
+  },
+  "keywords": [
+    "tree-sitter",
+    "LBNF",
+    "BNFC"
+  ],
+  "author": "Morten Konggaard Schou",
+  "license": "ISC",
+  "dependencies": {
+    "nan": "^2.12.1"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.14.5"
+  }
+}
