@@ -1,7 +1,7 @@
 
 
 module.exports = grammar({
-  name: "LBNF",
+  name: "lbnf",
 
   extras: $ => [
       /\s/,
