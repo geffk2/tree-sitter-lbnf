@@ -1,4 +1,18 @@
+function separator(rule, separator) {
+  return seq(rule, repeat(seq(separator, rule)))
+}
 
+function separator_nonempty(rule, separator) {
+  return seq(rule, repeat(seq(separator, rule)))
+}
+
+function terminator(rule, terminator) {
+  return repeat(seq(rule, terminator))
+}
+
+function terminator_nonempty(rule, terminator) {
+  return repeat1(seq(rule, terminator)) 
+}
 
 module.exports = grammar({
   name: "lbnf",
@@ -9,46 +23,122 @@ module.exports = grammar({
     ],
 
   rules: {
-    grammar: $ => repeat(seq($.def, ';')),
+    grammar: $ => repeat(seq($.def, repeat1(';'))),
 
     def: $ => choice(
-      seq($.label, '.', $.cat, '::=', repeat($.item)),
+      seq($.label, '.', $.cat, '::=', repeat(
+        choice(
+          $.string,
+          $.cat
+        )
+      )),
+
       seq('comment', $.string),
       seq('comment', $.string, $.string),
-      seq('internal', $.label, '.', $.cat, '::=', repeat($.item)),
+      seq('internal', $.label, '.', $.cat, '::=', repeat(
+        choice(
+          $.string,
+          $.cat
+        )
+      )),
       seq('token', $.ident, $.reg),
       seq('position', 'token', $.ident, $.reg),
-      seq('entrypoints', seperate1($.ident)),
+      seq('entrypoints', repeat($.cat)),
+
       seq('separator', optional('nonempty'), $.cat, $.string),
       seq('terminator', optional('nonempty'), $.cat, $.string),
+
+      seq('delimiters', $.cat, $.string, $.string, 
+        optional(
+          seq(
+            choice(
+              'terminator',
+              'separator'
+            ),
+            $.string
+          )
+        ),
+        optional('nonempty')),
+      //
       seq('coercions', $.ident, $.integer),
-      seq('rules', $.ident, '::=', seperate1(repeat($.item), '|')),
-      seq('layout', seperate1($.string)),
-      seq('layout', 'stop', seperate1($.string)),
+
+      seq('rules', $.ident, '::=', separator_nonempty(
+        choice(
+          $.ident, $.string
+        ), '|'
+      )),
+
+      seq('define', $.ident, repeat(separator($.ident, '')), '=', $.exp),
+
+      seq('layout', repeat($.string)),
+      seq('layout', 'stop', repeat($.string)),
       seq('layout', 'toplevel')
     ),
-    item: $ => choice(
-      $.string,
-      $.cat
-    ),
-    cat: $ => choice(
+
+    // define expressions
+    exp: $ =>
+      choice(
+        seq($.exp1,":",$.exp),
+        $.exp1
+      ),
+    exp1: $ =>
+      choice(
+        seq($.ident,$.list_exp2),
+        $.exp2
+      ),
+    exp2: $ =>
+      choice(
+        $.ident,
+        $.integer,
+        $.char,
+        $.string,
+        $.double,
+        seq("[",$.list_exp,"]"),
+        seq("(",$.exp,")")
+      ),
+    list_exp: $ =>
+      choice(
+        $.exp,
+        seq($.exp,",",$.list_exp)
+      ),
+    list_exp2: $ =>
+      choice(
+        $.exp2,
+        seq($.exp2,$.list_exp2)
+      ),
+
+    // exp: $ => separator(seq(
+    //   $.exp1,
+    //   repeat(':', $.exp1) 
+    // ), ','),
+    //
+    // exp1: $ => choice(
+    //   $.exp2,
+    //   seq($.ident, repeat($.exp2))
+    // ), 
+    //
+    // exp2: $ => separator_nonempty(
+    //   choice(
+    //     $.ident, 
+    //     $.integer,
+    //     $.char,
+    //     $.string,
+    //     $.double
+    //   ), ''),
+
+    cat: $ => separator(choice(
       seq('[', $.cat, ']'),
       $.ident
-    ),
+    ), ','),
+
     label: $ => choice(
-      $.label_id,
-      seq($.label_id, repeat($.prof_item)),
-      seq($.label_id, $.label_id, repeat($.prof_item))
-    ),
-    label_id: $ => choice(
       $.ident,
       '_',
       seq('[', ']'),
       seq('(', ':', ')'),
       seq('(', ':', '[', ']', ')')
     ),
-    prof_item: $ => seq('(', '[', seperate($.int_list), ']', ',', '[', seperate($.integer), ']', ')'),
-    int_list: $ => seq('[', seperate($.integer), ']'),
+
     reg2: $ => choice(
       seq($.reg2, $.reg3),
       $.reg3
@@ -76,6 +166,7 @@ module.exports = grammar({
     reg: $ => $.reg1,
 
     integer: $ => /\d+/,
+    double: $ => /\d+\.\d+(e\-?\d+)?/,
     char: $ => seq(
       '\'',
       choice(
@@ -113,9 +204,4 @@ module.exports = grammar({
   }
 });
 
-function seperate(rule, separator=',') {
-  return optional(seperate1(rule, separator))
-}
-function seperate1(rule, separator=',') {
-  return seq(rule, repeat(seq(separator, rule)))
-}
+
